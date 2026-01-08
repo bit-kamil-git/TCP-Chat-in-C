@@ -77,5 +77,33 @@ int main(int argc, char **argv) {
 
     printf("Listening on port %d \n", port);
 
-    pause();
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    memset(&client_addr, 0, sizeof(client_addr));
+
+
+    printf("Waiting for a client...\n");
+
+    int client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &client_len);
+    if (client_fd == -1) {
+        perror("accept");
+        close(listen_fd);
+        return 1;
+    }
+
+    char ip_str[INET_ADDRSTRLEN];
+    if (inet_ntop(AF_INET, &client_addr.sin_addr, ip_str, sizeof(ip_str)) == NULL) {
+        perror("inet_ntop");
+        close(client_fd);
+        close(listen_fd);
+        return 1;
+    }
+
+    int client_port = ntohs(client_addr.sin_port);
+    printf("Client connected from %s:%d (fd=%d)\n", ip_str, client_port, client_fd);
+
+    close(client_fd);
+    close(listen_fd);
+    return 0;
+
 }
