@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
 
 int main(int argc, char **argv) {
     
@@ -20,9 +26,56 @@ int main(int argc, char **argv) {
         return 1;
     };
 
-
     printf("%ld\n", port_long);
 
+    int port = (int)port_long;
 
-    return 0;
+    int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if(listen_fd == -1) {
+        perror("socket");
+        return 1;
+    } else {
+        printf("Socket created: %d \n", listen_fd);
+    }
+
+    int reuse = 1;
+
+    int ret = setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+
+    if (ret == 0) {
+        printf("Success\n");
+    } else {
+        perror("setsockopt");
+    }
+
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));  // Zero addr before setting fields
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+
+    ret = bind(listen_fd, (struct sockaddr *)&addr, sizeof(addr));
+
+    if (ret == -1) {
+        perror("bind");
+        close(listen_fd);
+        return 1;
+    }
+
+    printf("Bound to port %d\n", port);
+
+    ret = listen(listen_fd, 10);
+
+    if (ret == -1) {
+        perror("listen");
+        close(listen_fd);
+        return 1;
+    }
+
+    printf("Listening on port %d \n", port);
+
+    pause();
 }
